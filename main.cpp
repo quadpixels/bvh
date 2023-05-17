@@ -15,8 +15,13 @@
 	#include <stdlib.h>
 	#include <stdio.h>
 	#include <GL/glew.h>
-	#include <GL/glu.h>
-	#include <GL/freeglut.h>
+	#ifdef __APPLE__
+		#include <GLUT/glut.h>
+		#include <OpenGL/glu.h>
+	#else
+		#include <GL/freeglut.h>
+		#include <GL/glu.h>
+	#endif
 	#include "openglstuff.hpp"
 #endif
 
@@ -24,7 +29,10 @@
 BVH BVHGen_GPU(const std::vector<Vec3>&, const std::vector<Vec3>&);
 bool g_use_cuda = false;
 int  g_bvh_method = 1;
+
+#ifdef USE_CUDA
 extern int g_num_blk, g_num_thd;
+#endif
 
 int main(int argc, char** argv) {
 	{
@@ -37,8 +45,10 @@ int main(int argc, char** argv) {
 	char filename[100];
 	sprintf(filename, "dragon.obj");
 	for (int i=1; i<argc; i++) {
+		#ifdef USE_CUDA
 		if (2 == sscanf(argv[i], "dim=%d,%d", &g_num_blk, &g_num_thd))
 			printf("Dim changed to <<<%d, %d>>>\n", g_num_blk, g_num_thd);
+		#endif
 		if (2 == sscanf(argv[i], "model=%s", filename))
 			printf("Model changed to %s\n", filename);
 	}
@@ -93,14 +103,18 @@ int main(int argc, char** argv) {
 	if (g_bvh_method == 1) bvh.Build();
 	else bvh.Build_Karras();
 
+	#ifdef USE_CUDA
 	if (g_use_cuda) { 
 		bvh = BVHGen_GPU(centroids, centroids_transformed);
 	}
+	#endif
 
 	#ifdef VISUALIZE
-	const int W = 1366, H = 768;
+	const int W = 800, H = 480;
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_DEPTH);
+	#ifndef __APPLE__
 	glutInitContextVersion(1, 3);
+	#endif
 	glutInitWindowSize(W, H);
 	glutInit(&argc, argv);
 	glutCreateWindow("BVH Construction");
